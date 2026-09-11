@@ -1,78 +1,190 @@
-const sampleData = [
-  { assetClass: 'Equity', marketValue: 129000 },
-  { assetClass: 'Bond', marketValue: 45000 },
-  { assetClass: 'Cash', marketValue: 5000 },
-]
+import { useState } from 'react'
+import { ArrowUpRight, Layers, PieChart, Wallet } from 'lucide-react'
+import CsvUploader from '../components/CsvUploader'
+
+interface SummaryData {
+  byAssetClass: Array<{ assetClass: string; marketValue: number }>
+  periodReturn: number
+  startDate: string
+  endDate: string
+}
+
+const sampleData: SummaryData = {
+  byAssetClass: [
+    { assetClass: 'Equity', marketValue: 129000 },
+    { assetClass: 'Bond', marketValue: 45000 },
+    { assetClass: 'Cash', marketValue: 5000 },
+  ],
+  periodReturn: 0.042,
+  startDate: '2026-01-01',
+  endDate: '2026-06-30',
+}
+
+function formatCurrency(value: number) {
+  return value.toLocaleString('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0,
+  })
+}
 
 export default function DashboardPage() {
+  const [summary, setSummary] = useState<SummaryData | null>(sampleData)
+
+  function handleUploadComplete() {
+    setSummary(sampleData)
+  }
+
+  const totalValue =
+    summary?.byAssetClass.reduce((sum, row) => sum + row.marketValue, 0) ?? 0
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <header className="flex items-center justify-between border-b border-slate-800 px-8 py-5">
-        <div className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-teal-500/20 text-teal-400">
-            &#9650;
-          </span>
-          <span className="font-serif text-lg text-slate-50">Northstar Portfolio</span>
+    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
+      <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="mb-2 font-mono text-xs uppercase tracking-widest text-teal-400">
+            Portfolio Overview
+          </p>
+          <h1 className="font-serif text-2xl text-slate-50 sm:text-3xl">Dashboard</h1>
         </div>
-        <button className="rounded-full border border-slate-700 px-4 py-1.5 text-sm text-slate-300 hover:border-slate-500 hover:text-slate-100">
-          Log out
-        </button>
+        {summary && (
+          <span className="rounded-full border border-slate-800 bg-slate-900/60 px-4 py-1.5 font-mono text-xs text-slate-400">
+            {summary.startDate} &rarr; {summary.endDate}
+          </span>
+        )}
       </header>
 
-      <main className="mx-auto max-w-5xl px-8 py-8">
-        <section className="mb-6 rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
-          <h2 className="mb-3 font-mono text-xs uppercase tracking-widest text-slate-400">
-            Upload holdings CSV
-          </h2>
-          <div className="flex items-center gap-3">
-            <input type="file" accept=".csv" className="text-sm text-slate-300" />
-            <button className="rounded-full bg-teal-500 px-4 py-1.5 text-sm font-semibold text-slate-950 hover:bg-teal-400">
-              Upload
-            </button>
+      {summary ? (
+        <>
+          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <article className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="font-mono text-[10px] uppercase tracking-widest text-slate-500">
+                  Total Market Value
+                </p>
+                <Wallet size={15} className="text-slate-600" />
+              </div>
+              <p className="font-serif text-3xl text-slate-50">
+                {formatCurrency(totalValue)}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">As of {summary.endDate}</p>
+            </article>
+
+            <article className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="font-mono text-[10px] uppercase tracking-widest text-slate-500">
+                  Period Return
+                </p>
+                <ArrowUpRight size={15} className="text-slate-600" />
+              </div>
+              <p
+                className={`font-serif text-3xl ${
+                  summary.periodReturn >= 0 ? 'text-emerald-400' : 'text-red-400'
+                }`}
+              >
+                {summary.periodReturn >= 0 ? '+' : ''}
+                {(summary.periodReturn * 100).toFixed(2)}%
+              </p>
+              <p className="mt-1 text-xs text-slate-500">Start vs. end market value</p>
+            </article>
+
+            <article className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="font-mono text-[10px] uppercase tracking-widest text-slate-500">
+                  Asset Classes
+                </p>
+                <Layers size={15} className="text-slate-600" />
+              </div>
+              <p className="font-serif text-3xl text-slate-50">
+                {summary.byAssetClass.length}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">Represented in holdings</p>
+            </article>
           </div>
-        </section>
 
-        <section className="mb-6 rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
-          <h2 className="mb-1 font-mono text-xs uppercase tracking-widest text-slate-400">
-            Period Return
-          </h2>
-          <p className="font-serif text-3xl text-emerald-400">+4.2%</p>
-          <p className="mt-1 text-sm text-slate-500">Jan 1 &ndash; Jun 30, 2026</p>
-        </section>
+          <div className="mb-6">
+            <CsvUploader onUploadComplete={handleUploadComplete} />
+          </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
-            <h2 className="mb-3 font-mono text-xs uppercase tracking-widest text-slate-400">
-              Market Value by Asset Class
-            </h2>
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-slate-800 text-slate-500">
-                  <th className="pb-2 font-normal">Asset class</th>
-                  <th className="pb-2 text-right font-normal">Market value</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sampleData.map((row) => (
-                  <tr key={row.assetClass} className="border-b border-slate-800/60">
-                    <td className="py-2 text-slate-200">{row.assetClass}</td>
-                    <td className="py-2 text-right text-slate-200">
-                      ${row.marketValue.toLocaleString()}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+            <section className="min-w-0 overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/60 p-6 lg:col-span-3">
+              <h2 className="mb-5 font-mono text-xs uppercase tracking-widest text-slate-400">
+                Market Value by Asset Class
+              </h2>
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-800 text-slate-500">
+                    <th className="pb-3 font-normal">Asset class</th>
+                    <th className="pb-3 text-right font-normal">Allocation</th>
+                    <th className="pb-3 text-right font-normal">Market value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {summary.byAssetClass.map((row) => {
+                    const share = totalValue ? row.marketValue / totalValue : 0
+                    return (
+                      <tr
+                        key={row.assetClass}
+                        className="border-b border-slate-800/60 transition hover:bg-slate-800/30"
+                      >
+                        <td className="py-3 text-slate-200">{row.assetClass}</td>
+                        <td className="py-3">
+                          <div className="flex items-center justify-end gap-2">
+                            <span className="hidden h-1.5 w-24 overflow-hidden rounded-full bg-slate-800 sm:block">
+                              <span
+                                className="block h-full rounded-full bg-teal-400"
+                                style={{ width: `${share * 100}%` }}
+                              />
+                            </span>
+                            <span className="w-12 text-right font-mono text-xs text-slate-400">
+                              {(share * 100).toFixed(1)}%
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-3 text-right font-mono text-slate-200">
+                          {formatCurrency(row.marketValue)}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td className="pt-3 font-medium text-slate-300">Total</td>
+                    <td />
+                    <td className="pt-3 text-right font-mono font-medium text-slate-50">
+                      {formatCurrency(totalValue)}
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </section>
+                </tfoot>
+              </table>
+            </section>
 
-          <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
-            <h2 className="mb-3 font-mono text-xs uppercase tracking-widest text-slate-400">
-              Chart
-            </h2>
-            <p className="text-sm text-slate-600">Chart goes here</p>
+            <section className="flex flex-col rounded-2xl border border-slate-800 bg-slate-900/60 p-6 lg:col-span-2">
+              <h2 className="mb-5 font-mono text-xs uppercase tracking-widest text-slate-400">
+                Allocation Chart
+              </h2>
+              <div className="flex flex-1 flex-col items-center justify-center gap-3 text-slate-600">
+                <PieChart size={32} strokeWidth={1.5} />
+                <p className="text-sm">Chart goes here</p>
+              </div>
+            </section>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="mb-6">
+            <CsvUploader onUploadComplete={handleUploadComplete} />
+          </div>
+          <section className="rounded-2xl border border-dashed border-slate-800 bg-slate-900/30 p-16 text-center">
+            <Layers size={28} strokeWidth={1.5} className="mx-auto mb-3 text-slate-600" />
+            <p className="text-slate-400">No holdings yet</p>
+            <p className="mt-1 text-sm text-slate-600">
+              Upload a CSV to see your portfolio breakdown.
+            </p>
           </section>
-        </div>
-      </main>
+        </>
+      )}
     </div>
   )
 }
