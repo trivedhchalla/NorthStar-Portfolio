@@ -1,12 +1,22 @@
 import { Building2, Mail, ShieldCheck } from 'lucide-react'
-
-const details = [
-  { icon: Mail, label: 'Email', value: 'tenant_a@example.com' },
-  { icon: Building2, label: 'Tenant', value: 'Alpha Capital' },
-  { icon: ShieldCheck, label: 'Access', value: 'Own tenant data only' },
-]
+import { getStoredUser } from '../api'
 
 export default function ProfilePage() {
+  const user = getStoredUser()
+
+  const details = [
+    { icon: Mail, label: 'Email', value: user?.email ?? '—' },
+    { icon: Building2, label: 'Tenant', value: user?.tenantName ?? '—' },
+    { icon: ShieldCheck, label: 'Access', value: 'Own tenant data only' },
+  ]
+
+  const initials = (user?.tenantName ?? '')
+    .split(' ')
+    .map((word) => word[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
       <header className="mb-8">
@@ -19,11 +29,11 @@ export default function ProfilePage() {
       <section className="mb-6 rounded-2xl border border-slate-800 bg-slate-900/60 p-6 sm:p-8">
         <div className="mb-8 flex items-center gap-4">
           <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-400 to-emerald-600 font-serif text-2xl text-slate-950">
-            AC
+            {initials || '—'}
           </span>
           <div>
-            <p className="font-serif text-xl text-slate-50">Alpha Capital</p>
-            <p className="text-sm text-slate-400">Tenant 1</p>
+            <p className="font-serif text-xl text-slate-50">{user?.tenantName ?? '—'}</p>
+            <p className="text-sm text-slate-400">Tenant {user?.tenantId ?? '—'}</p>
           </div>
         </div>
 

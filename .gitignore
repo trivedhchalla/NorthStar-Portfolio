@@ -1,3 +1,25 @@
+# Dependencies (matches client/node_modules and server/node_modules)
+node_modules/
+
+# Local environment overrides — copy .env.example to .env
+.env
+
+# Build output
+dist/
+dist-ssr/
+*.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+
+# Exercise brief and working notes (not part of the deliverable)
 planning/
-samples/
 .claude/

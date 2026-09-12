@@ -1,9 +1,6 @@
 import { useRef, useState, type ChangeEvent } from 'react'
-
-interface UploadResponse {
-  inserted: number
-  rejected: Array<{ row: number; reason: string }>
-}
+import { AlertCircle, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { uploadHoldings, type UploadResponse } from '../api'
 
 interface CsvUploaderProps {
   onUploadComplete?: (data: UploadResponse) => void
@@ -14,15 +11,29 @@ export default function CsvUploader({ onUploadComplete }: CsvUploaderProps) {
   const [fileName, setFileName] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [rejected, setRejected] = useState<UploadResponse['rejected']>([])
   const [success, setSuccess] = useState('')
+
+  function clearMessages() {
+    setError('')
+    setSuccess('')
+    setRejected([])
+  }
+
+  // Cleared here as well as on selection: cancelling the file dialog fires no
+  // change event, which would otherwise leave the previous result on screen.
+  function openFilePicker() {
+    clearMessages()
+    setFileName('')
+    inputRef.current?.click()
+  }
 
   async function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
 
-    setError('')
-    setSuccess('')
+    clearMessages()
     setFileName(file.name)
 
     if (!file.name.toLowerCase().endsWith('.csv')) {
@@ -32,30 +43,20 @@ export default function CsvUploader({ onUploadComplete }: CsvUploaderProps) {
 
     setLoading(true)
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-
-      const response = await fetch('/api/holdings/upload', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        body: formData,
-      })
-
-      if (!response.ok) {
-        throw new Error(`Upload failed (${response.status} ${response.statusText})`)
-      }
-
-      const data: UploadResponse = await response.json()
-
-      if (data.rejected.length > 0) {
-        setError(`Upload rejected: ${data.rejected.length} invalid row(s) found.`)
-      } else {
-        setSuccess(`Uploaded ${data.inserted} rows from ${file.name}.`)
-      }
-
+      const data = await uploadHoldings(file)
+      // Bad rows are flagged and skipped, not treated as a reason to fail
+      // the whole upload — every valid row still gets loaded.
+      setSuccess(
+        data.rejected.length > 0
+          ? `Loaded ${data.inserted} row(s) from ${file.name}. ${data.rejected.length} row(s) were skipped — see below.`
+          : `Uploaded ${data.inserted} rows from ${file.name}.`
+      )
+      setRejected(data.rejected)
       onUploadComplete?.(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed')
+      const failure = err as Error & { rejected?: UploadResponse['rejected'] }
+      setError(failure.message)
+      setRejected(failure.rejected ?? [])
     } finally {
       setLoading(false)
     }
@@ -68,15 +69,44 @@ export default function CsvUploader({ onUploadComplete }: CsvUploaderProps) {
       </h2>
 
       {error && (
-        <p className="mb-4 rounded-lg border border-red-900/50 bg-red-950/50 px-3 py-2 text-sm text-red-300">
-          {error}
-        </p>
+        <div className="mb-4 rounded-lg border border-red-900/50 bg-red-950/50 p-4 text-sm text-red-300">
+          <div className="flex items-start gap-2">
+            <AlertCircle size={16} className="mt-0.5 shrink-0" />
+            <div>
+              <p className="font-medium">Upload failed</p>
+              <p className="mt-0.5 text-red-400">{error}</p>
+            </div>
+          </div>
+          <p className="mt-3 border-t border-red-900/50 pt-3 text-xs text-red-400/80">
+            Your existing holdings are unchanged.
+          </p>
+        </div>
       )}
 
       {success && (
-        <p className="mb-4 rounded-lg border border-emerald-900/50 bg-emerald-950/50 px-3 py-2 text-sm text-emerald-300">
-          {success}
-        </p>
+        <div className="mb-4 flex items-start gap-2 rounded-lg border border-emerald-900/50 bg-emerald-950/50 p-4 text-sm text-emerald-300">
+          <CheckCircle2 size={16} className="mt-0.5 shrink-0" />
+          <div>
+            <p className="font-medium">Upload complete</p>
+            <p className="mt-0.5 text-emerald-400">{success}</p>
+          </div>
+        </div>
+      )}
+
+      {rejected.length > 0 && (
+        <div className="mb-4 rounded-lg border border-amber-900/50 bg-amber-950/40 p-4 text-sm text-amber-300">
+          <div className="flex items-start gap-2">
+            <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+            <p className="font-medium">{rejected.length} row(s) flagged and skipped</p>
+          </div>
+          <ul className="mt-2 space-y-1 border-t border-amber-900/50 pt-2 font-mono text-xs text-amber-400">
+            {rejected.map((item) => (
+              <li key={`${item.row}-${item.reason}`}>
+                Row {item.row}: {item.reason}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       <input
@@ -90,7 +120,7 @@ export default function CsvUploader({ onUploadComplete }: CsvUploaderProps) {
       <div className="flex items-center gap-4">
         <button
           type="button"
-          onClick={() => inputRef.current?.click()}
+          onClick={openFilePicker}
           disabled={loading}
           className="rounded-full bg-teal-500 px-5 py-2 text-sm font-semibold text-slate-950 hover:bg-teal-400 disabled:cursor-not-allowed disabled:bg-slate-600"
         >

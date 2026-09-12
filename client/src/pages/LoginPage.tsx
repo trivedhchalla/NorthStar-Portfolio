@@ -1,20 +1,32 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { fetchSummary, login } from '../api'
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (!email || !password) {
       setError('Email and password are required.')
       return
     }
+
     setError('')
-    navigate('/dashboard')
+    setLoading(true)
+    try {
+      await login(email, password)
+      const summary = await fetchSummary()
+      navigate(summary.byAssetClass.length > 0 ? '/dashboard' : '/upload')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -74,9 +86,10 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            className="w-full rounded-full bg-teal-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-teal-400"
+            disabled={loading}
+            className="w-full rounded-full bg-teal-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:bg-slate-600"
           >
-            Log in &rarr;
+            {loading ? 'Signing in...' : 'Log in →'}
           </button>
         </form>
       </div>
