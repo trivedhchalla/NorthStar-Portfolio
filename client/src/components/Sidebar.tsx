@@ -1,8 +1,10 @@
-import { LayoutDashboard, LogOut, Menu, TrendingUp, User, X } from 'lucide-react'
+import { LayoutDashboard, LogOut, Menu, TrendingUp, Upload, User, X } from 'lucide-react'
 import { NavLink, useNavigate } from 'react-router-dom'
+import { clearSession, getStoredUser } from '../api'
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/upload', label: 'Upload', icon: Upload },
   { to: '/profile', label: 'Profile', icon: User },
 ]
 
@@ -20,9 +22,16 @@ export default function Sidebar({
   onClose,
 }: SidebarProps) {
   const navigate = useNavigate()
+  const user = getStoredUser()
+  const initials = (user?.tenantName ?? '')
+    .split(' ')
+    .map((word) => word[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
 
   function handleLogout() {
-    localStorage.removeItem('token')
+    clearSession()
     onClose()
     navigate('/login')
   }
@@ -99,16 +108,14 @@ export default function Sidebar({
           }`}
         >
           <span
-            title={collapsed ? 'Alpha Capital' : undefined}
+            title={collapsed ? user?.tenantName : undefined}
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-800 font-mono text-xs text-teal-300"
           >
-            AC
+            {initials || '--'}
           </span>
           <div className={`min-w-0 leading-tight ${collapsed ? 'lg:hidden' : ''}`}>
-            <p className="truncate text-sm text-slate-200">Alpha Capital</p>
-            <p className="truncate font-mono text-[10px] text-slate-500">
-              tenant_a@example.com
-            </p>
+            <p className="truncate text-sm text-slate-200">{user?.tenantName}</p>
+            <p className="truncate font-mono text-[10px] text-slate-500">{user?.email}</p>
           </div>
         </div>
 
