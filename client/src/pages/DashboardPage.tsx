@@ -280,7 +280,7 @@ export default function DashboardPage() {
                         borderRadius: 8,
                         color: '#e2e8f0',
                       }}
-                      formatter={(value: number) => [formatCurrency(value), 'Market value']}
+                      formatter={(value) => [formatCurrency(Number(value)), 'Market value']}
                     />
                     <Bar dataKey="marketValue" radius={[6, 6, 0, 0]}>
                       {filteredRows.map((row, index) => (
